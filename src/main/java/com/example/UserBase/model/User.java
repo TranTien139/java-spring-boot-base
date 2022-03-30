@@ -1,6 +1,7 @@
 package com.example.UserBase.model;
 
 import javax.persistence.*;
+import java.util.List;
 
 @Entity
 @Table(name = "user")
@@ -18,6 +19,9 @@ public class User {
     @Column(name="password", nullable =  false)
     private String password;
 
+    @ElementCollection(fetch = FetchType.EAGER)
+    List<Role> roles;
+
     public long getId() {return id;}
     public void setId(long id) { this.id = id; }
 
@@ -29,4 +33,11 @@ public class User {
 
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }
+
+    public List<Role> getRoles() {
+        return roles;
+    }
+    public void setRoles(List<Role> roles) {
+        this.roles = roles;
+    }
 }

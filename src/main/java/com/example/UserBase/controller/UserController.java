@@ -1,13 +1,19 @@
 package com.example.UserBase.controller;
 
+import com.example.UserBase.dto.UserDataDTO;
 import com.example.UserBase.exception.ResourceNotFoundException;
 import com.example.UserBase.model.User;
 import com.example.UserBase.repository.UserRepository;
 import com.example.UserBase.service.UserService;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.modelmapper.ModelMapper;
 
 import java.util.HashMap;
 import java.util.List;
@@ -21,6 +27,8 @@ public class UserController {
 
     @Autowired
     private UserService userService;
+
+    protected ModelMapper modelMapper = new ModelMapper();
 
     @GetMapping("/users")
     public List<User> getAllUsers() {
@@ -63,5 +71,26 @@ public class UserController {
         Map<String, Boolean> response = new  HashMap<>();
         response.put("status", Boolean.TRUE);
         return response;
+    }
+
+    @PostMapping("/login")
+    @ApiOperation(value = "${UserController.login}")
+    @ApiResponses(value = {
+            @ApiResponse(code = 400, message = "Something went wrong"), //
+            @ApiResponse(code = 422, message = "Invalid email/password supplied")})
+    public String login(
+                        @ApiParam("Email") @RequestParam String email,
+                        @ApiParam("Password") @RequestParam String password) {
+        return userService.signin(email, password);
+    }
+
+    @PostMapping("/signup")
+    @ApiOperation(value = "${UserController.signup}")
+    @ApiResponses(value = {
+            @ApiResponse(code = 400, message = "Something went wrong"),
+            @ApiResponse(code = 403, message = "Access denied"),
+            @ApiResponse(code = 422, message = "Username is already in use")})
+    public String signup(@ApiParam("Signup User") @RequestBody UserDataDTO user) {
+        return userService.signup(modelMapper.map(user, User.class));
     }
 }
