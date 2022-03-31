@@ -1,9 +1,11 @@
 package com.example.UserBase.service;
 
+import com.example.UserBase.dto.UserResponseDTO;
 import com.example.UserBase.exception.CustomException;
 import com.example.UserBase.model.User;
 import com.example.UserBase.repository.UserRepository;
 import com.example.UserBase.security.JwtTokenProvider;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -31,6 +33,8 @@ public class UserService {
     @Autowired
     private AuthenticationManager authenticationManager;
 
+    protected ModelMapper modelMapper = new ModelMapper();
+
     public String encodePassword(String password){
         return passwordEncoder.encode(password);
     }
@@ -42,7 +46,8 @@ public class UserService {
             String token = jwtTokenProvider.createToken(email, user.getRoles());
             Map<String, Object> result = new HashMap<>();
             result.put("accessToken", token);
-            result.put("user", user);
+            Object userInfo = modelMapper.map(user, UserResponseDTO.class);
+            result.put("user", userInfo);
             return result;
         } catch (AuthenticationException e) {
             throw new CustomException("Invalid email/password supplied", HttpStatus.UNPROCESSABLE_ENTITY);
@@ -56,7 +61,8 @@ public class UserService {
             String token = jwtTokenProvider.createToken(user.getEmail(), user.getRoles());
             Map<String, Object> result = new HashMap<>();
             result.put("accessToken", token);
-            result.put("user", user);
+            Object userInfo = modelMapper.map(user, UserResponseDTO.class);
+            result.put("user", userInfo);
             return result;
         } else {
             throw new CustomException("Email is already in use", HttpStatus.UNPROCESSABLE_ENTITY);
