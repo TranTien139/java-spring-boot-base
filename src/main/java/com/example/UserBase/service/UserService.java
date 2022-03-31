@@ -13,10 +13,12 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import javax.servlet.http.HttpServletRequest;
+
 @Service
 public class UserService {
 
-    protected PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    protected PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(12);
 
     @Autowired
     private UserRepository userRepository;
@@ -48,6 +50,10 @@ public class UserService {
         } else {
             throw new CustomException("Email is already in use", HttpStatus.UNPROCESSABLE_ENTITY);
         }
+    }
+
+    public User whoami(HttpServletRequest req) {
+        return userRepository.findByEmail(jwtTokenProvider.getUsername(jwtTokenProvider.resolveToken(req)));
     }
 
 }
