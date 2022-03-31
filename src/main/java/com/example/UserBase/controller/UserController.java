@@ -6,6 +6,7 @@ import com.example.UserBase.dto.UserResponseDTO;
 import com.example.UserBase.exception.ResourceNotFoundException;
 import com.example.UserBase.model.User;
 import com.example.UserBase.repository.UserRepository;
+import com.example.UserBase.service.Response;
 import com.example.UserBase.service.UserService;
 import io.swagger.annotations.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,40 +37,46 @@ public class UserController {
 
     protected ModelMapper modelMapper = new ModelMapper();
 
+    @Autowired
+    private Response responseData;
+
     @GetMapping("/")
-    public List<User> getAllUsers(@RequestParam(defaultValue = "1") int page,
-                                  @RequestParam(defaultValue = "10") int size) {
-        Page<User> pageData = userRepository.findAll(PageRequest.of(page, size, Sort.by("id").descending()));
+    public Map<String, Object> getAllUsers(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        Page<User> pageData = userRepository.findAll(PageRequest.of(page-1, size, Sort.by("id").descending()));
         List<User> users = new  ArrayList<>();
         if(pageData.hasContent()){
-            return pageData.getContent();
+            Object result = pageData.getContent();
+            return responseData.responseSuccess(result);
         }
-        return users;
+        return responseData.responseSuccess(users);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<User> getUserById(@PathVariable(value = "id") Long userId) throws ResourceNotFoundException {
+    public Map<String, Object> getUserById(@PathVariable(value = "id") Long userId) throws ResourceNotFoundException {
         User user = userRepository.findById(userId).orElseThrow(()-> new ResourceNotFoundException("User not found on: " + userId));
-        return ResponseEntity.ok().body(user);
+        // ResponseEntity.ok().body(user);
+        return responseData.responseSuccess(user);
     }
 
     @PutMapping("/edit")
-    public ResponseEntity<User> updateUserById(HttpServletRequest req, @RequestBody UserResponseDTO userDetails) throws ResourceNotFoundException{
+    public Map<String, Object> updateUserById(HttpServletRequest req, @RequestBody UserResponseDTO userDetails) throws ResourceNotFoundException{
         User userInfo = userService.whoami(req);
         User user = userRepository.findById(userInfo.getId()).orElseThrow(()->new ResourceNotFoundException("User not found on: " + userInfo.getId()));
         user.setEmail(userDetails.getEmail());
         user.setFullName(userDetails.getFullName());
         final User updatedUser = userRepository.save(user);
-        return ResponseEntity.ok(updatedUser);
+        return responseData.responseSuccess(updatedUser);
     }
 
-    @DeleteMapping("/{id}")
-    public Map<String, Boolean> deleteUser(@PathVariable(value = "id") Long userId) throws Exception{
-        User user = userRepository.findById(userId).orElseThrow(()-> new ResourceNotFoundException("User not found on: " + userId));
+    @DeleteMapping("/delete")
+    public Map<String, Object> deleteUser(HttpServletRequest req) throws Exception{
+        User userInfo = userService.whoami(req);
+        User user = userRepository.findById(userInfo.getId()).orElseThrow(()-> new ResourceNotFoundException("User not found on: " + userInfo.getId()));
         userRepository.delete(user);
-        Map<String, Boolean> response = new  HashMap<>();
-        response.put("status", Boolean.TRUE);
-        return response;
+        return responseData.responseSuccess(user);
     }
 
     @PostMapping("/login")
@@ -77,8 +84,9 @@ public class UserController {
     @ApiResponses(value = {
             @ApiResponse(code = 400, message = "Something went wrong"), //
             @ApiResponse(code = 422, message = "Invalid email/password supplied")})
-    public String login(@ApiParam("Login") @RequestBody LoginDTO user) {
-        return userService.signin(user.getEmail(), user.getPassword());
+    public Map<String, Object> login(@ApiParam("Login") @RequestBody LoginDTO user) {
+        Object result = userService.signin(user.getEmail(), user.getPassword());
+        return responseData.responseSuccess(result);
     }
 
     @PostMapping("/signup")
@@ -87,8 +95,9 @@ public class UserController {
             @ApiResponse(code = 400, message = "Something went wrong"),
             @ApiResponse(code = 403, message = "Access denied"),
             @ApiResponse(code = 422, message = "Username is already in use")})
-    public String signup(@ApiParam("Signup User") @RequestBody UserDataDTO user) {
-        return userService.signup(modelMapper.map(user, User.class));
+    public Map<String, Object> signup(@ApiParam("Signup User") @RequestBody UserDataDTO user) {
+        Object result = userService.signup(modelMapper.map(user, User.class));
+        return responseData.responseSuccess(result);
     }
 
     @GetMapping(value = "/me")
@@ -98,7 +107,8 @@ public class UserController {
             @ApiResponse(code = 400, message = "Something went wrong"), //
             @ApiResponse(code = 403, message = "Access denied"), //
             @ApiResponse(code = 500, message = "Expired or invalid JWT token")})
-    public UserResponseDTO whoami(HttpServletRequest req) {
-        return modelMapper.map(userService.whoami(req), UserResponseDTO.class);
+    public Map<String, Object> whoami(HttpServletRequest req) {
+        Object result = modelMapper.map(userService.whoami(req), UserResponseDTO.class);
+        return responseData.responseSuccess(result);
     }
 }

@@ -14,6 +14,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 public class UserService {
@@ -33,20 +35,29 @@ public class UserService {
         return passwordEncoder.encode(password);
     }
 
-    public String signin(String email, String password) {
+    public Map<String, Object> signin(String email, String password) {
         try {
             authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(email, password));
-            return jwtTokenProvider.createToken(email, userRepository.findByEmail(email).getRoles());
+            User user = userRepository.findByEmail(email);
+            String token = jwtTokenProvider.createToken(email, user.getRoles());
+            Map<String, Object> result = new HashMap<>();
+            result.put("accessToken", token);
+            result.put("user", user);
+            return result;
         } catch (AuthenticationException e) {
             throw new CustomException("Invalid email/password supplied", HttpStatus.UNPROCESSABLE_ENTITY);
         }
     }
 
-    public String signup(User user) {
+    public Map<String, Object> signup(User user) {
         if (!userRepository.existsByEmail(user.getEmail())) {
             user.setPassword(passwordEncoder.encode(user.getPassword()));
             userRepository.save(user);
-            return jwtTokenProvider.createToken(user.getEmail(), user.getRoles());
+            String token = jwtTokenProvider.createToken(user.getEmail(), user.getRoles());
+            Map<String, Object> result = new HashMap<>();
+            result.put("accessToken", token);
+            result.put("user", user);
+            return result;
         } else {
             throw new CustomException("Email is already in use", HttpStatus.UNPROCESSABLE_ENTITY);
         }
