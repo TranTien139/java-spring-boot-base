@@ -1,0 +1,39 @@
+version: "3.8"
+services:
+  postgresql:
+    image: postgres:latest
+    container_name: postgres_spring_boot
+    restart: on-failure:5
+    env_file: .env
+    environment:
+      - POSTGRES_PASSWORD=$DB_PASSWORD
+      - POSTGRES_USER=$DB_USER
+      - POSTGRES_DB=$DB_NAME
+    ports:
+      - $POSTGRES_LOCAL_PORT:$POSTGRES_DOCKER_PORT
+    network_mode: bridge
+    volumes:
+      - db:/var/lib/postgresql/data
+  app:
+    container_name: app_spring_boot
+    depends_on:
+      - postgresql
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: on-failure:5
+    env_file: .env
+    ports:
+      - $SPRING_LOCAL_PORT:$SPRING_DOCKER_PORT
+    environment:
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      SPRING_DOCKER_PORT: ${SPRING_DOCKER_PORT}
+    network_mode: bridge
+    volumes:
+      - .m2:/root/.m2
+    stdin_open: true
+    tty: true
+volumes:
+  db:
